@@ -11,13 +11,13 @@ import java.util.Random;
 
 class Game2 implements ActionListener {
 
-    JFrame frame;
-    Random random = new Random();
-    JPanel panelKnappar;
+    private JFrame frame;
+    private Random random = new Random();
+    private JPanel panelKnappar;
     private ArrayList<JButton> buttons = new ArrayList<JButton>();
     private JButton button;
-    private int buttonsClicked  = 0;
-    private int gamesPlayed = 0;
+    private int buttonsClicked  = 0, gamesPlayed = 0;
+    private boolean gameWinner = false ;
     private ArrayList<Player> players = new ArrayList<Player>();
     private static HashMap<String, ArrayList<String>> winConditions = new HashMap<>();
 
@@ -74,7 +74,7 @@ class Game2 implements ActionListener {
                 buttonsClicked++;
                 button.setText(playerSign);
                 button.setEnabled(false);
-                if(buttonsClicked == 9 || doesCurrentPlayerWin()){
+                if(buttonsClicked == 9 || gameWinner){
                     //TODO show dialog ask if the player wants the game to be restarted and then call restartGame();
                     gamesPlayed++;
                     restartGame();
@@ -90,18 +90,21 @@ class Game2 implements ActionListener {
         // Create an object of class player. We will need 2 players in a Multiplayer game.
         // They will have their own symbol based on a randomized funtion to assign it.
         String message = "Player "+ (numberOfPlayer + 1) + " name";
+        //TODO get the solution grom Game about empty value/Cancel
         String name = JOptionPane.showInputDialog(message);
         players.add(new Player(name));
     }
 
-    // hardcoded amount of players.
+
+    // hardcoded amount of players. In case we want more players we can pass a variable telling us how many they will be.
     public void addPlayers(){
         for(int i = 0; i < 2; i++){
             addPlayer(i);
         }
     }
 
-    // set a player order. Works for hardcoded 2 players.
+
+    // set a player order. Works for hardcoded 2 players. It will need a different way of thinking in case of more player.
     public void assignTurnOrder(){
         int decideFirst = random.nextInt(1, 101);
         if(decideFirst % 2 == 0){
@@ -115,67 +118,52 @@ class Game2 implements ActionListener {
         }
     }
 
-    public String currentPlayerChoice(String playedButton){
-        if(players.get(0).isCurrent()){
-            players.get(0).makeChoice(playedButton);
-            // if the player doesn't win make player two the current player
-            if(!doesCurrentPlayerWin()){
-                players.get(0).setCurrent(false);
-                players.get(1).setCurrent(true);
-            } else {
-                players.get(0).setWonRounds();
-                try {
-                    addWinSound();
-                } catch (UnsupportedAudioFileException ex) {
-                    throw new RuntimeException(ex);
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                } catch (LineUnavailableException ex) {
-                    throw new RuntimeException(ex);
+
+    public String currentPlayerChoice(String playedButton) {
+        String playedSing = "Err";
+        for (Player player : players) {
+            if (player.isCurrent()) {
+                player.makeChoice(playedButton);
+                if (!player.checkForWin()) {
+                    player.setCurrent(false);
+                    if (players.getFirst().equals(player)) {
+                        players.getLast().setCurrent(true);
+                    } else {
+                        players.getFirst().setCurrent(true);
+                    }
+                    return player.playerSign;
+                } else {
+                    player.setWonRounds();
+                    //TODO try and catch the errors in the function as suggested from teacher.
+                    try {
+                        gameWinner = true;
+                        addWinSound();
+                    } catch (UnsupportedAudioFileException ex) {
+                        throw new RuntimeException(ex);
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    } catch (LineUnavailableException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    return player.playerSign;
                 }
             }
-            return players.get(0).playerSign;
-        } else {
-            players.get(1).makeChoice(playedButton);
-            // if the player doesn't win make player one the current player
-            if(!doesCurrentPlayerWin()){
-                players.get(1).setCurrent(false);
-                players.get(0).setCurrent(true);
-            } else {
-                players.get(1).setWonRounds();
-                try {
-                    addWinSound();
-                } catch (UnsupportedAudioFileException ex) {
-                    throw new RuntimeException(ex);
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                } catch (LineUnavailableException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-            return players.get(1).playerSign;
         }
+        return playedSing;
     }
 
-    public boolean doesCurrentPlayerWin(){
-        boolean isWinner = false;
-        if(players.get(0).isCurrent()){
-            isWinner = players.get(0).checkForWin();
-        } else {
-            isWinner = players.get(1).checkForWin();
-        }
-        return isWinner;
-    }
 
     public void restartGame(){
         buttonsClicked=0;
         gamesPlayed++;
+        gameWinner = false;
         for(JButton button : buttons){
             button.setText("");
             button.setEnabled(true);
         }
         assignTurnOrder();
     }
+
 
     public void createWinConditions(){
         ArrayList<String> row1 = new ArrayList<>();
@@ -219,9 +207,12 @@ class Game2 implements ActionListener {
         winConditions.put("diag 1", diag1);
         winConditions.put("diag 2", diag2);
     }
+
+
     public static HashMap<String, ArrayList<String>> getWinConditions() {
         return winConditions;
     }
+
 
     public void addClickSound() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
         File file = new File("Pen Clicking (online-audio-converter.com).wav");
@@ -230,6 +221,8 @@ class Game2 implements ActionListener {
         clip.open(clickAudio);
         clip.start();
     }
+
+
     public void addWinSound() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
         File file = new File("Slapping Three Faces.wav");
         AudioInputStream winSound = AudioSystem.getAudioInputStream(file);
@@ -238,3 +231,4 @@ class Game2 implements ActionListener {
         clip.start();
     }
 }
+
